@@ -4,10 +4,10 @@ class XirSys
 {
     // Please fill in your XirSys credentials here
     // Make sure it matches your dashboard credentials exactly
-    private $domain        = '< Please insert domain here >';
+    private $domain        = $_ENV["XIRSYS_DOMAIN"];
     private $application   = 'default';
-    private $ident         = '< Please insert ident here >';
-    private $secret        = '< Please insert secret here >';
+    private $ident         = $_ENV["XIRSYS_APPLICATION"];
+    private $secret        = $_ENV["XIRSYS_IDENT"];
     // Forces getIceServers to return compatible URLs for STUNS and TURNS 
     private $secure        = '1';
     // Enable cross-origin resource sharing
