@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <title>WebRTC example</title>
+	<link href="css/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+	<link href="css/main.css" rel="stylesheet" />
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+
+	<script src="js/xrtc-1.5.0.js"></script>
+	<script src="js/manyToMany.js"></script>
+</head>
+
+<body>
+  <h1>Kitchen Sink™</h1>
+  <h4>A simple many-to-many video and text chat demo that connects to users dynamically</h4>
+
+  <p>Link this demo to yourself or a friend:<br>
+  <p>
+
+  <div id="form-join">
+    <form class="form-horizontal">
+      <div class="control-group">
+        <label for="room" class="control-label">Room</label>
+        <div class="controls">
+          <input type="text" id="room" name="room" value="default"/>
+        </div>
+      </div>
+      <div class="control-group">
+        <label for="username" class="control-label">Username</label>
+        <div class="controls">
+          <input type="text" id="username" name="username"/>
+        </div>
+      </div>
+      <br>
+    </form>
+    <button id="button-join" class="btn btn-primary btn-large">Join</button>
+  </div>
+
+  <div id="form-connect">
+    <form class="form-horizontal">
+      <div class="control-group">
+        <label for="userlist" class="control-label">Other users in this room</label>
+        <div class="controls">
+          <ul id="userlist">
+          </ul>
+        </div>
+      </div>
+      <button id="connect" class="btn btn-primary btn-large">Connect</button>
+    </form>
+
+    <br>
+
+    <!-- Video chat -->
+    <div id="video-slots">
+	  </div>
+
+    <!-- Text chat -->
+    <div id="container-text" class="text-chat">
+
+      <div id="chatwindow-outer" class="text-chat">
+        <div id="chatwindow" class="text-chat">
+        </div>
+      </div>
+    
+      <div id="bottom" class="text-chat">
+        <input id="message" type="text" name="input" class="text-chat"></input><button id="send" class="btn btn-success btn-large text-chat">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+
+    $(document).ready(function() {
+      
+      // Initially hide connect form
+      $('#form-connect').hide()
+
+      // Randomize username in form
+      $("#username").val(randomizeUsername());
+    
+      // Initialize manyToMany object
+	    manyToMany.init();
+      
+      $("#button-join").click(function(e) {
+		    e.preventDefault();
+      
+		    // Success and fail handlers for user's local video / audio stream allocation
+			  var getMediaSuccess = function (stream) {
+				  manyToMany.addVideo({ stream: stream, isLocalStream: true, userId: $('#username').val() });
+				  manyToMany.localMediaStream( stream );
+			  };
+			  var getMediaFailed = function (err) {
+				  console.log('Get media stream error. ', err);
+			  };
+
+			  // Requests the local video and audio stream
+        // Comment this out if you don't want a microphone / webcam request
+			  manyToMany.getUserMedia(
+				  { video: true, audio: true },
+				  getMediaSuccess,
+				  getMediaFailed
+			  );
+
+			  // Room information object / container
+			  var roomInfo = {
+          name: $('#room').val()
+			  };
+
+
+			  // Create the XirSys objects needed to initialize a room
+			  manyToMany.room( new xRtc.Room(roomInfo) );
+      
+			  // Assign events for updating the room's users list
+			  manyToMany.room().on( xRtc.Room.events.usersUpdated, manyToMany.refreshRoom )
+		      .on( xRtc.Room.events.userConnected, manyToMany.refreshRoom )
+				  .on( xRtc.Room.events.userDisconnected, manyToMany.refreshRoom )
+				  .on( xRtc.Room.events.connectionDeclined, manyToMany.refreshRoom )
+			    // More events for accepting a call and handling connection creation
+				  .on( xRtc.Room.events.incomingConnection, manyToMany.acceptCall )
+				  .on( xRtc.Room.events.connectionCreated, manyToMany.connectionCreated )
+          .on( xRtc.Room.events.enter, manyToMany.enterRoom );
+
+		    // Map all other default events
+			  manyToMany.subscribe( manyToMany.room(), xRtc.Room.events );
+
+			  // Enter / open room
+			  manyToMany.room().enter($("#username").val(), { autoReply: false });
+        manyToMany.username($("#username").val());
+        
+        // Hide join form and button
+        $('#form-join').hide()
+        $('#form-connect').show()
+      });
+
+      // Handles connect button click
+	    $("#connect").click(function (e) {
+			  e.preventDefault();
+        
+        // Grab room participants from list
+        var participants = [];
+        $('li.participant').each(function(i, elem) {
+          participants.push($(elem).text());
+        });
+        
+		    console.log('Connecting to participants');
+		    // Connect to remote peer
+        for (var i = 0; i < participants.length; i++) {
+          manyToMany.preConnect(participants[i], { createDataChannel: 'auto' });
+        }
+	    });
+    
+      // Sends a message
+      $("#send").click(function (e) {
+		    e.preventDefault();
+        if ($("#message").val() != "") {
+          manyToMany.sendMessage($("#message").val());
+          $("#message").val("");
+        }
+		  });
+
+      // Hitting enter sends message if not empty
+      $("#message").keyup(function(event){
+        if(event.keyCode == 13){
+          if (this.value != "") {
+            manyToMany.sendMessage($("#message").val());
+            this.value = "";
+          }
+        }
+      });
+    });
+
+    // Randomizes username for form
+    function randomizeUsername() {
+      var username = "";
+      var possible = "abcdefghijklmnopqrstuvwxyz";
+
+      for( var i=0; i < 5; i++ )
+        username += possible.charAt(Math.floor(Math.random() * possible.length));
+
+      return username;
+    }
+  </script>
+  
+</body>
+</html>
