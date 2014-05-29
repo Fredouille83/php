@@ -8,6 +8,6 @@ $xirsysCall = new XirSys();
 $xirsysCall->checkForCors();
 
 // Execute POST request to get XirSys ICE servers
-echo $xirsysCall->getToken($_POST["room"], $_POST["username"]);
+echo $xirsysCall->getIceServers($_POST["room"], $_POST["username"]);
 
 ?>
